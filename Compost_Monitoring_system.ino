@@ -4,6 +4,7 @@
 
 #include <LiquidCrystal_I2C.h>
 #include <DHT.h>
+#include <NewPing.h>
 #define BLYNK_PRINT Serial  // Comment this out to disable prints and save space
 #include <ESP8266WiFi.h>
 #include <BlynkSimpleEsp8266.h>
@@ -21,8 +22,12 @@ BlynkTimer timer;
 #define MOISTURE_SENSOR_PIN A0
 #define DHTPIN D3             // Pin untuk DHT11
 #define DHTTYPE DHT11         // Tipe sensor DHT
+#define TRIGGER_PIN D5  // ESP8266 Pin D5 sebagai pin Trigger
+#define ECHO_PIN    D6  // ESP8266 Pin D6 sebagai pin Echo
+#define MAX_DISTANCE 400 // Maksimum jarak yang ingin kita ukur (dalam cm)
 
 DHT dht(DHTPIN, DHTTYPE);
+NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE);
 
 void setup() {
   Serial.begin(9600);
@@ -51,6 +56,7 @@ void setup() {
   lcd.clear();
 
   timer.setInterval(2000L, sendSensorData);
+  timer.setInterval(1000L, sendUltrasonicDistance);
 }
 
 void sendSensorData() {
@@ -86,6 +92,19 @@ void sendSensorData() {
   lcd.print(moistureValue);
 }
 
+void sendUltrasonicDistance() {
+  // Mengukur jarak
+  unsigned int uS = sonar.ping();
+  float distance = uS / US_ROUNDTRIP_CM; // Konversi waktu ke jarak
+
+  // Kirim jarak ke pin virtual V1 di Blynk
+  Blynk.virtualWrite(V1, distance);
+  
+  // Opsi: tampilkan jarak di serial monitor untuk debugging
+  Serial.print("Jarak: ");
+  Serial.print(distance);
+  Serial.println("cm");
+}
 
 void loop() {
   Blynk.run();
